@@ -13,26 +13,29 @@ module OmniAuth
         token_url: 'https://accounts.snapchat.com/login/oauth2/access_token'
       }
 
-      uid { raw_info['me']['id'] }
+      uid { raw_info['externalId'] }
 
       info do
         {
-          email: raw_info['me']['email'],
-          organization_id: raw_info['me']['organization_id'],
-          display_name: raw_info['me']['display_name'],
-          member_status: raw_info['me']['member_status']
+          id: raw_info['externalId'],
+          name: raw_info['displayName']
         }
       end
 
-      extra do
-        {
-          'raw_info' => raw_info
-        }
-      end
+      extra { {raw_info: raw_info} }
 
       def raw_info
         raw_info_url = "https://adsapi.snapchat.com/v1/me"
         @raw_info ||= access_token.get(raw_info_url).parsed
+      end
+      
+      def raw_info
+        @raw_info ||= begin
+          url = 'https://kit.snapchat.com/v1/me'
+          body = {query: "{ me { externalId, displayName } }"}
+
+          access_token.post(url, body: body.to_json).parsed.dig('data', 'me')
+        end
       end
 
       def callback_url
